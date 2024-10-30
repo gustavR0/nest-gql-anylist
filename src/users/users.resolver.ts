@@ -1,4 +1,13 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  ResolveField,
+  Int,
+  Parent,
+} from '@nestjs/graphql';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { ValidRolesArgs } from './dto/args/roles.arg';
@@ -7,11 +16,17 @@ import { ValidRoles } from '../auth/enums/valid-roles.enum';
 import { ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserInput } from './dto/update-user.input';
+import { ItemsService } from 'src/items/items.service';
+import { Item } from 'src/items/entities/item.entity';
+import { PaginationArgs, SearchArgs } from 'src/common/dto/args';
 
 @Resolver(() => User)
 @UseGuards(JwtAuthGuard)
 export class UsersResolver {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly itemService: ItemsService,
+  ) {}
 
   @Query(() => [User], { name: 'users' })
   async findAll(
@@ -19,8 +34,6 @@ export class UsersResolver {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @CurrentUser([ValidRoles.ADMIN]) user: User,
   ): Promise<User[]> {
-    console.log(validRoles);
-
     return this.usersService.findAll(validRoles.roles);
   }
 
@@ -47,5 +60,20 @@ export class UsersResolver {
     @CurrentUser([ValidRoles.ADMIN]) user: User,
   ) {
     return this.usersService.block(id, user);
+  }
+
+  @ResolveField(() => Int)
+  async itemCount(@Parent() user: User): Promise<number> {
+    return this.itemService.itemCountByUser(user);
+  }
+
+  @ResolveField(() => [Item], { name: 'items' })
+  async getItemsByUser(
+    @CurrentUser([ValidRoles.ADMIN]) adminUser: User,
+    @Parent() user: User,
+    @Args() paginationArgs: PaginationArgs,
+    @Args() searchArgs: SearchArgs,
+  ): Promise<Item[]> {
+    return this.itemService.findAll(user, paginationArgs, searchArgs);
   }
 }

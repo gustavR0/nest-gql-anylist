@@ -87,6 +87,6 @@ export class UsersService {
       throw new BadRequestException(error.detail.replace('Key ', ''));
 
     this.logger.error(error);
-    throw new InternalServerErrorException('Please check server logs');
+    throw new InternalServerErrorException('Please check server logs :D');
   }
 }
